@@ -10,7 +10,7 @@ const schemes = require('./scheme-model');
 */
 /** @type {import("express").RequestHandler} */
 const checkSchemeId = (req, res, next) => {
-  const id = req.params.id;
+  const id = req.params.scheme_id;
   schemes.findById(id).then(
     result => {
       if (result) {

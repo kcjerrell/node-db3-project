@@ -20,12 +20,12 @@ async function find() { // EXERCISE A
   return await db().select('sc.*')
     .from('schemes as sc')
     .count('st.step_id', { as: 'number_of_steps' })
-     .leftJoin('steps as st', 'sc.scheme_id', 'st.scheme_id')
+    .leftJoin('steps as st', 'sc.scheme_id', 'st.scheme_id')
     .groupBy('sc.scheme_id')
     .orderBy('sc.scheme_id', 'asc');
 }
 
-function findById(scheme_id) { // EXERCISE B
+async function findById(scheme_id) { // EXERCISE B
   /*
     1B- Study the SQL query below running it in SQLite Studio against `data/schemes.db3`:
 
@@ -91,9 +91,41 @@ function findById(scheme_id) { // EXERCISE B
         "steps": []
       }
   */
+
+  const result = await db('schemes')
+    .leftJoin('steps', 'schemes.scheme_id', 'steps.scheme_id')
+    .select('schemes.scheme_name', 'steps.*')
+    .where('schemes.scheme_id', scheme_id)
+    .orderBy('steps.step_number', 'asc');
+
+  if (result.length == 0) {
+    return null;
+  }
+
+  const scheme = {
+    scheme_id: parseInt(scheme_id),
+    scheme_name: result[0].scheme_name,
+    steps: result[0].scheme_id === null ? [] : result.map(step => (
+      {
+        step_id: step.step_id,
+        step_number: step.step_number,
+        instructions: step.instructions
+      }))
+  }
+
+  // if (result[0].scheme_id !== null) {
+  //   scheme.steps = result.map(step => (
+  //     {
+  //       step_id: step.step_id,
+  //       step_number: step.step_number,
+  //       instructions: step.instructions
+  //     }));
+  // }
+
+  return scheme;
 }
 
-function findSteps(scheme_id) { // EXERCISE C
+async function findSteps(scheme_id) { // EXERCISE C
   /*
     1C- Build a query in Knex that returns the following data.
     The steps should be sorted by step_number, and the array
@@ -114,20 +146,42 @@ function findSteps(scheme_id) { // EXERCISE C
         }
       ]
   */
+
+  const result = await db('schemes')
+    .leftJoin('steps', 'schemes.scheme_id', 'steps.scheme_id')
+    .select('schemes.scheme_name', 'steps.step_id', 'steps.step_number', 'steps.instructions')
+    .where('schemes.scheme_id', scheme_id)
+    .whereNotNull('step_id')
+    .orderBy('steps.step_number', 'asc');
+
+  return result;
 }
 
-function add(scheme) { // EXERCISE D
+async function add(scheme) { // EXERCISE D
   /*
     1D- This function creates a new scheme and resolves to _the newly created scheme_.
   */
+
+  const newId = await db('schemes')
+    .insert(scheme);
+
+  const newScheme = await findById(newId);
+
+  return newScheme;
 }
 
-function addStep(scheme_id, step) { // EXERCISE E
+async function addStep(scheme_id, step) { // EXERCISE E
   /*
     1E- This function adds a step to the scheme with the given `scheme_id`
     and resolves to _all the steps_ belonging to the given `scheme_id`,
     including the newly created one.
   */
+
+  await db('steps').insert({ ...step, scheme_id });
+
+  const steps = await findSteps(scheme_id);
+
+  return steps;
 }
 
 module.exports = {
