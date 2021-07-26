@@ -11,8 +11,9 @@ const sharedConfig = {
   // this enables foreign keys in SQLite
   pool: {
     afterCreate: (conn, done) => {
+      // conn.run()
+      conn.run('PRAGMA journal_mode = MEMORY')
       conn.run('PRAGMA foreign_keys = ON', done)
-      conn.run('PRAGMA journal_mode = "OFF"')
     },
   },
 }
